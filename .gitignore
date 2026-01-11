@@ -1,0 +1,5 @@
+rag_app/index_store/
+*.pkl
+*.xlsx
+__pycache__/
+.env
