@@ -1,121 +1,125 @@
+## Project Overview
+
+The pipeline:
+- starts from a **list of 57 SPMs**,
+- expands literature search using **PubChem synonyms**,
+- retrieves PubMed metadata and legally available full paper,
+- stores all data in **MongoDB** as the primary data store,
+- builds a **chunk-level FAISS vector index** for semantic retrieval,
+- applies an **LLM (Mistral)** to extract structured interactions with **sentence-level evidence**.
+
+---
+
+## Repository Structure and Scripts
+
 ### 1. `get_pubchem_synonyms.py`
-**Purpose:**  
+
+**Purpose**  
 Fetches PubChem synonyms for each canonical SPM.
 
-**Input:**  
+**Input**
 - `Types_of_SPMs.xlsx`
 
-**Output:**  
+**Output**
 - `Types_of_SPMs_with_synonyms.xlsx`
 
 ---
 
 ### 2. `get_pubmed_data.py`
-**Purpose:**  
-Core ingestion script that:
-- searches PubMed using SPM names + synonyms,
-- retrieves metadata (PMID, title, abstract, DOI, PMCID),
-- fetches full text legally:
-  - **PMC XML** when PMCID exists,
-  - **Open-Access DOI** via Unpaywall API when PMC is unavailable,
+
+**Purpose**  
+Core ingestion script that performs the following steps:
+- searches PubMed using canonical SPM names and their synonyms,
+- retrieves paper metadata (PMID, title, journal, year, abstract, DOI, PMCID),
+- fetches full paper:
+  - **PMC XML** when a PMCID exists,
+  - **Open-Access DOI** via the Unpaywall API when PMC is unavailable,
 - stores all results in MongoDB.
 
-**MongoDB Collections Created:**
-- `spm_rag.papers` – paper metadata + full text (when available)
-- `spm_rag.mentions` –  SPM ↔ synonym ↔ PMID mapping
+**MongoDB Collections Created**
+- `spm_rag.papers`  
+  Stores paper-level metadata and full text (when available).
+- `spm_rag.mentions`  
+  Stores mappings between each SPMs, matched synonyms, and PMIDs.
 
 ---
 
 ### 3. `rag_app/utils.py`
-**Purpose:**  
-Shared helper functions.
-- Formats documents consistently for RAG ingestion (`make_doc`).
 
-Used by all indexing scripts.
+**Purpose**  
+Shared utility functions used across the pipeline.
+
+Key functionality:
+- consistent document formatting for RAG ingestion (`make_doc`).
+
+This ensures uniform text handling across indexing and extraction stages.
 
 ---
 
 ### 4. `rag_app/build_index_mongo_chunks.py` ⭐
-**Purpose:**  
-Builds the **RAG index**.
 
-Steps:
+**Purpose**  
+Builds the **semantic RAG index** (main indexing script).
+
+Processing steps:
 - reads papers from MongoDB,
-- selects text (full text if available, else abstract),
-- chunks text into overlapping segments,
-- filters for interaction-relevant chunks,
+- selects text (full text if available, otherwise abstract),
+- splits text into overlapping chunks,
+- filters for interaction-relevant content,
 - embeds chunks using Sentence Transformers,
-- builds a FAISS vector index.
+- builds a scalable FAISS vector index.
 
-**Output:**
+**Output**
 - `index_store/faiss.index`
 - `index_store/metas.pkl`
 - `index_store/texts.pkl`
 
-This is the **main indexing script** used by both the chatbot and extraction.
+This index is used by both the chatbot and the interaction extraction pipeline.
 
 ---
 
 ### 5. `rag_app/app.py`
-**Purpose:**  
-Interactive **Streamlit RAG chatbot**.
+
+**Purpose**  
+Interactive **Streamlit-based RAG chatbot**.
 
 Features:
-- semantic retrieval from FAISS
-- LLM-generated answers (Mistral AI)
+- semantic retrieval using FAISS,
+- LLM-generated answers (Mistral AI),
 - transparent citation display (“Sources used”).
 
-Used for **exploration and qualitative validation**.
+This component is primarily used for exploration, debugging, and qualitative validation of retrieval quality.
 
 ---
 
-### 6. `rag_app/extract_triplets.py`
-**Purpose:**  
-LLM-based **relation extraction**.
+### 6. `rag_app/extract_interactions.py`
 
-For each single SPM:
+**Purpose**  
+LLM-based **SPM–protein relation extraction**.
+
+For each SPM, the script:
 - retrieves relevant chunks via FAISS,
-- prompts the LLM to extract:
+- prompts the LLM to extract structured interactions:
   - SPM
   - Protein
   - Relation
-  - **Evidence sentence(s)** (verbatim from text)
-  - PMID and chunk index,
-- deduplicates results,
-- saves output to CSV and optionally MongoDB.
+  - Evidence sentence(s)
+  - PMID,
+- deduplicates interactions,
+- saves results to CSV and MongoDB.
 
-**Output:**
+**Output**
 - `outputs/triplets_with_evidence_YYYYMMDD.csv`
-
-This is the **main scientific output** of the project.
-
----
-
-## Key Design Decisions
-
-### Canonical SPMs vs Synonyms
-- **57 canonical SPMs** are fixed and reported.
-- **Synonyms are used only for retrieval**, not treated as separate entities.
-- Final interaction tables always reference canonical SPM names.
-
-### Evidence-First Extraction
-- Interactions are extracted **only if explicitly stated** in text.
+- MongoDB collection: `spm_rag.interactions`
 - Each interaction includes **sentence-level evidence**.
-- This avoids hallucination and ensures scientific traceability.
-
-### Legal Full-Text Access
-- Full text is fetched **only when available**:
-  - PMC
-  - Open-Access DOI
-- Paywalled papers fall back to abstracts.
+- This minimizes hallucinations and ensures scientific traceability.
 
 ---
 
 ## Requirements
-
 - Python 3.9+
-- MongoDB (local)
-- Mistral API key
+- MongoDB (local instance)
+- Mistral API key (provided via `.env`)
 
 Install dependencies:
 ```bash
