@@ -1,6 +1,52 @@
-pandas
-openpyxl
-numpy
-faiss-cpu
-python-dotenv
-mistralai
+# -------------------------
+# Core Python utilities
+# -------------------------
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.1.0
+
+# -------------------------
+# Data handling
+# -------------------------
+pandas>=2.1.0
+numpy>=1.26.0
+openpyxl>=3.1.2
+
+# -------------------------
+# MongoDB
+# -------------------------
+pymongo>=4.6.0
+
+# -------------------------
+# NLP & Embeddings
+# -------------------------
+sentence-transformers>=2.3.1
+torch>=2.1.0
+
+# -------------------------
+# Vector Search
+# -------------------------
+faiss-cpu>=1.7.4
+
+# -------------------------
+# Full-text extraction
+# -------------------------
+PyMuPDF>=1.23.0
+
+# -------------------------
+# LLM Clients
+# -------------------------
+mistralai>=0.4.0
+
+# -------------------------
+# RAG Evaluation (optional but used)
+# -------------------------
+ragas>=0.1.7
+datasets>=2.16.0
+
+# -------------------------
+# Web App
+# -------------------------
+streamlit>=1.31.0

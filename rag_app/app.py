@@ -32,6 +32,12 @@ def load_store():
 
     index = faiss.read_index(index_path)
 
+    try:
+        index.nprobe = 10
+    except AttributeError:
+        pass
+
+
     #metas = list of dicts (PMID, title, etc)
     #texts = list of chunks (strings)
     with open(metas_path, "rb") as f:
@@ -168,11 +174,13 @@ for msg in active_chat["messages"]:
             with st.expander("Sources used"):
                 for i, s in enumerate(msg["sources"], start=1):
                     st.write(f"**[{i}] {s.get('Title','')}**")
-                    st.write(f"- SPM: {s.get('SPM Name','')}")
-                    st.write(f"- Synonyms matched: {s.get('Synonyms','')}")
-                    st.write(f"- PMID: {s.get('PMID','')}")
-                    st.write(f"- URL: {s.get('PubMed URL','')}")
-                    st.write(f"- Similarity score: {s.get('score', 0):.4f}")
+                    st.write(f"- SPM: {s.get('SPM Name', s.get('spm_name',''))}")
+                    #st.write(f"- Synonyms matched: {s.get('Synonyms', s.get('synonym_matched',''))}")
+                    st.write(f"- PMID: {s.get('PMID', s.get('pmid',''))}")
+                    st.write(f"- Year: {s.get('Year', s.get('year',''))}")
+                    st.write(f"- URL: {s.get('PubMed URL', s.get('pubmed_url',''))}")
+                    #st.write(f"- Chunk index: {s.get('chunk_index', s.get('ChunkIndex',''))}")
+                    #st.write(f"- Similarity score: {s.get('score', 0):.4f}")
                     st.divider()
 
 # User input -> retrieval -> answer
