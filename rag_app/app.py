@@ -180,7 +180,7 @@ for msg in active_chat["messages"]:
                     st.write(f"- Year: {s.get('Year', s.get('year',''))}")
                     st.write(f"- URL: {s.get('PubMed URL', s.get('pubmed_url',''))}")
                     #st.write(f"- Chunk index: {s.get('chunk_index', s.get('ChunkIndex',''))}")
-                    #st.write(f"- Similarity score: {s.get('score', 0):.4f}")
+                    st.write(f"- Similarity score: {s.get('score', 0):.4f}")
                     st.divider()
 
 # User input -> retrieval -> answer
@@ -198,7 +198,7 @@ if user_text and user_text.strip():
 
     #Do retrieval
     with st.spinner("Retrieving relevant papers..."):
-        retrieved = retrieve(user_text, embed_model, index, metas, texts, k=TOP_K)
+        retrieved = retrieve(user_text, embed_model, index, metas, texts, k=TOP_K) 
 
     #Build prompt for the LLM
     prompt = build_prompt(user_text, retrieved)
@@ -206,9 +206,11 @@ if user_text and user_text.strip():
     #Ask mistral for response
     with st.spinner("Generating answer with Mistral..."):
         resp = llm.chat.complete(
-            model="mistral-large-latest",
-            messages=[{"role": "user", "content": prompt}]
-        )
+        model="mistral-large-latest",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.0
+    )
+
         answer = resp.choices[0].message.content
 
     #Prepare sources for UI

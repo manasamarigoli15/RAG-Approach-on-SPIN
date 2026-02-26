@@ -10,6 +10,8 @@ import numpy as np
 from dotenv import load_dotenv
 from mistralai import Mistral
 from sentence_transformers import SentenceTransformer
+import time
+from mistralai.models.sdkerror import SDKError
 from pymongo import MongoClient
 
 # MongoDB configuration
@@ -49,16 +51,38 @@ def load_store():
     texts = pickle.load(open(os.path.join(INDEX_DIR, "texts.pkl"), "rb"))
     return index, metas, texts
 
+def exact_match_bonus(query, text):
+    return 1.0 if query.lower() in text.lower() else 0.0
+
+
 def retrieve(query, embed_model, index, metas, texts, k=TOP_K):
+    # Retrieve more candidates for reranking
     q_emb = embed_model.encode([query], convert_to_numpy=True, normalize_embeddings=True)
-    scores, ids = index.search(q_emb.astype(np.float32), k)
+    scores, ids = index.search(q_emb.astype(np.float32), k * 3)
 
     hits = []
     for score, row_id in zip(scores[0], ids[0]):
         if row_id == -1:
             continue
-        hits.append((float(score), metas[row_id], texts[row_id]))
-    return hits
+
+        text = texts[row_id]
+        meta = metas[row_id]
+
+        # Boost if exact match appears in text
+        boosted_score = float(score) + exact_match_bonus(query, text)
+
+        hits.append((boosted_score, meta, text))
+
+    # Re-rank: JIF first, then boosted similarity
+    hits = sorted(
+        hits,
+        key=lambda x: (x[1].get("JIF", 0.0), x[0]),
+        reverse=True
+    )
+
+    # Keep only top 10 after reranking
+    return hits[:10]
+
 
 def build_extraction_prompt(spm_name, retrieved):
     blocks = []
@@ -131,12 +155,17 @@ def main():
 
     # Unique key so re-runs update instead of duplicating
     interactions_col.create_index(
-        [("SPM", 1), ("Protein", 1), ("Relation", 1), ("PMID", 1), ("ChunkIndex", 1)],
+        [("SPM", 1), ("Protein", 1), ("Relation", 1), ("PMID", 1)],
         unique=True
     )
 
+
     # ---- Put your SPM list here (start small) ----
-    spms = load_canonical_spms_from_excel("Types_of_SPMs_with_synonyms.xlsx", col="Name")
+    spms = load_canonical_spms_from_excel(
+        os.path.join(OUT_DIR, "Types_of_SPMs_with_synonyms.xlsx"),
+        col="Name"
+    )
+
     print("Canonical SPMs loaded:", len(spms))
 
     all_rows = []
@@ -144,11 +173,27 @@ def main():
         retrieved = retrieve(spm, embed_model, index, metas, texts, k=TOP_K)
         prompt = build_extraction_prompt(spm, retrieved)
 
-        resp = llm.chat.complete(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                resp = llm.chat.complete(
+                    model=MODEL_NAME,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                break
+            except SDKError as e:
+                if "rate limit" in str(e).lower():
+                    wait = 10 + attempt * 10
+                    print(f"Rate limited. Sleeping {wait}s before retry...")
+                    time.sleep(wait)
+                else:
+                    raise
+        else:
+            print(f"Failed after {max_retries} retries for SPM: {spm}")
+            continue
+
         out = resp.choices[0].message.content
+
         data = safe_json(out)
 
         if not data:
@@ -178,14 +223,23 @@ def main():
                     "Protein": row["Protein"],
                     "Relation": row["Relation"],
                     "PMID": row["PMID"],
-                    "ChunkIndex": row["ChunkIndex"],
                 },
-                {"$set": row},
+                {
+                    "$addToSet": {
+                        "Evidence": row["Evidence"]
+                    },
+                    "$setOnInsert": {
+                        "created_at": row["created_at"],
+                        "run_id": row["run_id"]
+                    }
+                },
                 upsert=True
             )
 
 
         print(f"{spm}: extracted {len(data.get('interactions', []))} interactions")
+        time.sleep(2)
+
 
     out_path = os.path.join(OUT_DIR, f"interactions_with_evidence_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
     with open(out_path, "w", newline="", encoding="utf-8") as f:
