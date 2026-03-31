@@ -4,7 +4,7 @@ import hashlib
 
 NEO4J_URI = "bolt://localhost:7687"
 NEO4J_USER = "neo4j"
-NEO4J_PASS = "password"
+NEO4J_PASS = "neo4j123"
 
 MONGO_URI = "mongodb://localhost:27017"
 DB = "spm_rag"
@@ -55,11 +55,14 @@ def main():
         # Expected doc structure in inter_col:
         # {spm_name, protein, pmid, evidence_text, relation_type?, score?}
         for it in inter_col.find({}):
-            spm = it.get("spm_name") or it.get("spm")
-            protein = it.get("protein") or it.get("protein_name")
-            pmid = it.get("pmid")
-            ev_text = it.get("evidence_text") or it.get("evidence") or ""
-            rel_type = it.get("relation_type") or "INTERACTS_WITH"
+            spm = it.get("SPM")
+            protein = it.get("Protein")
+            pmid = it.get("PMID")
+
+            ev = it.get("Evidence") or []
+            ev_text = " ".join(ev) if isinstance(ev, list) else str(ev)
+
+            rel_type = it.get("Relation") or "INTERACTS_WITH"
             score = it.get("score")
 
             if not (spm and protein and pmid):
