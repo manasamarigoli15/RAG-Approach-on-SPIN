@@ -9,3 +9,7 @@
 #### Text Processing: Filter, chunk, and embed text containing SPMs
 #### Information Extraction: Use RAG and LLMs (Mistral) to extract interaction triplets.
 #### Evaluation & Visualization: Assess retrieval (RAGAs) and visualize the interaction graph (Neo4j).
+
+## Project Demo
+
+#### https://drive.google.com/file/d/16Gohn8iNKkTA3zEZktclLExaFB8XuR8y/view?usp=drive_link
