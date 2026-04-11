@@ -82,6 +82,7 @@ def build_prompt(question, retrieved):
 You are a scientific assistant.
 Answer the question using ONLY the context.
 If the context is not enough, say you don't know.
+Don"t use citations for the answer if the context doesn't support it.
 Cite sources like [1], [2], etc.
 
 QUESTION:
@@ -92,6 +93,23 @@ CONTEXT:
 """.strip()
 
     return prompt
+
+
+def should_show_sources(question, retrieved, min_score=0.35):
+    """
+    Only show sources for domain-specific questions that appear meaningfully
+    grounded in the indexed SPM corpus.
+    """
+    q = (question or "").lower()
+    domain_terms = [
+        "spm", "specialized pro-resolving", "resolvin", "protectin", "maresin",
+        "lipoxin", "mctr", "pctr", "rctr", "rvd", "rve", "rvt", "lxa", "lxb",
+        "pd1", "npd1", "mar1", "mar2", "at-rvd", "at-pd", "protein",
+        "receptor", "inflammation", "osteoarthritis", "pmid"
+    ]
+    has_domain_term = any(term in q for term in domain_terms)
+    has_strong_hit = any(float(score) >= min_score for score, _meta, _chunk in retrieved)
+    return has_domain_term and has_strong_hit
 
 
 
@@ -215,10 +233,11 @@ if user_text and user_text.strip():
 
     #Prepare sources for UI
     sources_for_ui = []
-    for score, meta, _chunk in retrieved:
-        m = dict(meta)
-        m["score"] = score
-        sources_for_ui.append(m)
+    if should_show_sources(user_text, retrieved):
+        for score, meta, _chunk in retrieved:
+            m = dict(meta)
+            m["score"] = score
+            sources_for_ui.append(m)
 
     #Store assistant message
     active_chat["messages"].append({
