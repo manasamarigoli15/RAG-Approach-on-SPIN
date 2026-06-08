@@ -80,8 +80,6 @@ pip install -r requirements.txt
 python main.py
 streamlit run app.py
 
----
-
 ```
 ## Project Demo
 
