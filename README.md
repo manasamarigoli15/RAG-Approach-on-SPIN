@@ -28,17 +28,6 @@ Biomedical literature is vast, fragmented, and inconsistent, making it difficult
 
 ---
 
-## 🏗️ System Architecture
-
-```
-<p align="center">
-  <img src="Project_Screenshots/Architecture.png" width="800"/>
-</p>
-
-```
-
----
-
 ## 🧩 Tech Stack
 
 - Python  
@@ -76,8 +65,8 @@ Biomedical literature is vast, fragmented, and inconsistent, making it difficult
 ## 🚀 Setup
 
 ```bash
-git clone https://github.com/your-username/biomedical-rag-spm.git
-cd biomedical-rag-spm
+git clone https://github.com/your-username/RAG-Approach-on-SPIN.git
+cd RAG-Approach-on-SPIN
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
