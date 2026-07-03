@@ -11,6 +11,12 @@ It converts unstructured scientific papers into:
 
 ---
 
+## Project Demo
+
+[RAG-Approach](https://drive.google.com/file/d/16Gohn8iNKkTA3zEZktclLExaFB8XuR8y/view?usp=drive_link)
+
+```
+
 ## 🔬 Problem Statement
 
 Biomedical literature is vast, fragmented, and inconsistent, making it difficult to extract structured insights—especially for Specialized Pro-Resolving Mediators (SPMs), which regulate inflammation and immune response.
@@ -81,7 +87,5 @@ python main.py
 streamlit run app.py
 
 ```
-## Project Demo
-```
-#### https://drive.google.com/file/d/16Gohn8iNKkTA3zEZktclLExaFB8XuR8y/view?usp=drive_link
+
 
