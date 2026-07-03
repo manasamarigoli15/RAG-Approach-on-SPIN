@@ -15,7 +15,7 @@ It converts unstructured scientific papers into:
 
 [RAG-Approach](https://drive.google.com/file/d/16Gohn8iNKkTA3zEZktclLExaFB8XuR8y/view?usp=drive_link)
 
-```
+---
 
 ## 🔬 Problem Statement
 
